@@ -9,8 +9,9 @@ const CONTENT_SCRIPT = `
   window.__NOREELS__ = true;
 
   var BLOCKER_ID = 'reel-blocker-overlay';
+  var FEED_BLOCKER_ID = 'feed-focus-overlay';
 
-  // --- Overlay (blocks /reels/ feed) ---
+  // --- Reels feed overlay ---
   function isReelsFeed() {
     var p = window.location.pathname;
     return p === '/reels' || p === '/reels/' || p.startsWith('/reels/?');
@@ -30,9 +31,90 @@ const CONTENT_SCRIPT = `
     if (el) el.remove();
   }
 
+  // --- Home feed blocker (keeps stories, hides posts) ---
+  function isHomeFeed() {
+    var p = window.location.pathname;
+    return p === '/' || p === '';
+  }
+
+  function getStoriesBottom() {
+    var candidates = [
+      document.querySelector('[aria-label="Stories"]'),
+      document.querySelector('[aria-label="Histoires"]'),
+      document.querySelector('[role="banner"] ~ div'),
+      document.querySelector('header + div'),
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i]) {
+        var b = candidates[i].getBoundingClientRect().bottom;
+        if (b > 60) return b;
+      }
+    }
+    return 210;
+  }
+
+  function getNavHeight() {
+    var nav = document.querySelector('nav') || document.querySelector('[role="tablist"]');
+    return nav ? nav.offsetHeight : 56;
+  }
+
+  function applyFeedBlock() {
+    if (!isHomeFeed()) return;
+    document.querySelectorAll('article').forEach(function(el) {
+      el.style.setProperty('display', 'none', 'important');
+    });
+    document.documentElement.style.setProperty('overflow-y', 'hidden', 'important');
+
+    var top = Math.round(getStoriesBottom());
+    var bottom = getNavHeight();
+
+    var overlay = document.getElementById(FEED_BLOCKER_ID);
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = FEED_BLOCKER_ID;
+      overlay.innerHTML = [
+        '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:48px;height:1.5px;background:linear-gradient(90deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-radius:2px;opacity:0.55;"></div>',
+        '<div style="width:42px;height:42px;border-radius:50%;border:1px solid #ededed;display:flex;align-items:center;justify-content:center;margin-bottom:10px;background:#fafafa;">',
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c8c8c8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">',
+        '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>',
+        '<path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>',
+        '<path d="M14.12 14.12a3 3 0 11-4.24-4.24"/>',
+        '<line x1="1" y1="1" x2="23" y2="23"/>',
+        '</svg>',
+        '</div>',
+        '<div style="font-size:14px;font-weight:600;color:#1c1c1c;letter-spacing:-0.3px;">Mode focus</div>',
+        '<div style="font-size:11.5px;color:#b8b8b8;text-align:center;max-width:190px;line-height:1.65;margin-top:3px;">Le fil est masqué.<br>Profite des stories.</div>',
+      ].join('');
+      document.body.appendChild(overlay);
+    }
+    overlay.style.cssText = [
+      'position:fixed',
+      'left:0', 'right:0',
+      'top:' + top + 'px',
+      'bottom:' + bottom + 'px',
+      'background:#ffffff',
+      'z-index:9998',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'flex-direction:column',
+      'gap:4px',
+      'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+      'pointer-events:none',
+    ].join(';') + ';';
+  }
+
+  function removeFeedBlock() {
+    var el = document.getElementById(FEED_BLOCKER_ID);
+    if (el) el.remove();
+    document.querySelectorAll('article').forEach(function(el) {
+      el.style.removeProperty('display');
+    });
+    document.documentElement.style.removeProperty('overflow-y');
+  }
+
   // --- Hide reels nav tab ---
   function hideReelsTab() {
-    // by href (with and without trailing slash)
     ['a[href="/reels/"]', 'a[href="/reels"]'].forEach(function(sel) {
       document.querySelectorAll(sel).forEach(function(a) {
         var parent = a.closest('li') || a.closest('[role="listitem"]') || a.parentElement;
@@ -40,7 +122,6 @@ const CONTENT_SCRIPT = `
         a.style.setProperty('display','none','important');
       });
     });
-    // by aria-label
     ['Reels', 'Reels Feed'].forEach(function(label) {
       document.querySelectorAll('[aria-label="' + label + '"]').forEach(function(el) {
         var parent = el.closest('li') || el.parentElement;
@@ -70,14 +151,16 @@ const CONTENT_SCRIPT = `
   function tick() {
     setTimeout(function() {
       hideReelsTab();
-      if (isReelsFeed()) showBlocker(); else removeBlocker();
+      if (isReelsFeed()) { showBlocker(); } else { removeBlocker(); }
+      if (isHomeFeed()) { applyFeedBlock(); } else { removeFeedBlock(); }
     }, 80);
   }
 
-  // --- Polling fallback (catches anything that slips through) ---
+  // --- Polling fallback ---
   setInterval(function() {
     hideReelsTab();
-    if (isReelsFeed()) showBlocker(); else removeBlocker();
+    if (isReelsFeed()) { showBlocker(); } else { removeBlocker(); }
+    if (isHomeFeed()) { applyFeedBlock(); } else { removeFeedBlock(); }
   }, 600);
 
   tick();

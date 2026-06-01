@@ -1,7 +1,7 @@
 import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
-import { View, StatusBar as RNStatusBar, Platform } from 'react-native';
+import { View, StatusBar as RNStatusBar, Platform, BackHandler } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const CONTENT_SCRIPT = `
 (function() {
@@ -90,8 +90,26 @@ const CONTENT_SCRIPT = `
     return { dark: false, bg: '#fff' };
   }
 
+  function isLoggedIn() {
+    var nav = document.querySelector('nav') || document.querySelector('[role="tablist"]');
+    return nav !== null;
+  }
+
+  function hasActiveDialog() {
+    return !!document.querySelector('[role="dialog"],[role="alertdialog"]');
+  }
+
   function applyFeedBlock() {
-    if (!isHomeFeed()) return;
+    if (!isHomeFeed() || !isLoggedIn()) return;
+
+    // Dialog open: hide overlays but keep articles hidden to avoid flash
+    if (hasActiveDialog()) {
+      var o = document.getElementById(FEED_BLOCKER_ID);
+      if (o) o.style.setProperty('display', 'none', 'important');
+      var c = document.getElementById(FEED_CONTENT_ID);
+      if (c) c.style.setProperty('display', 'none', 'important');
+      return;
+    }
 
     var storiesStrip = findStoriesStrip();
     if (storiesStrip) {
@@ -155,7 +173,7 @@ const CONTENT_SCRIPT = `
       '<circle cx="12" cy="12" r="4"/>',
       '<line x1="20" y1="3" x2="4" y2="21"/>',
       '</svg>',
-      '<div style="font-size:14px;font-weight:600;color:' + titleColor + ';letter-spacing:-0.3px;">Mode focus</div>',
+      '<div style="font-size:14px;font-weight:600;color:' + titleColor + ';letter-spacing:-0.3px;">Focus mode</div>',
       '<div style="font-size:11.5px;color:' + subtitleColor + ';text-align:center;max-width:190px;line-height:1.65;margin-top:3px;">The feed is hidden.</div>',
     ].join('');
     content.style.cssText = 'position:fixed;z-index:2147483648;left:50%;top:' + contentY + 'px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
@@ -275,6 +293,18 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (RNStatusBar.currentHeight
 export default function App() {
   const webViewRef = useRef(null);
   const [isDark, setIsDark] = useState(false);
+  const canGoBackRef = useRef(false);
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (canGoBackRef.current && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, []);
 
   return (
     <View style={{ flex: 1, paddingTop: STATUS_BAR_HEIGHT, backgroundColor: isDark ? 'rgb(12,16,20)' : '#fff' }}>
@@ -300,6 +330,7 @@ export default function App() {
           } catch (_) {}
         }}
         onNavigationStateChange={(navState) => {
+          canGoBackRef.current = navState.canGoBack;
           if (webViewRef.current) {
             webViewRef.current.injectJavaScript(CONTENT_SCRIPT);
           }

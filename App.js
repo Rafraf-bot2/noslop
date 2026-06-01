@@ -1,7 +1,7 @@
 import { StatusBar, setStatusBarStyle, setStatusBarBackgroundColor } from 'expo-status-bar';
-import { View, StatusBar as RNStatusBar, Platform } from 'react-native';
+import { View, StatusBar as RNStatusBar, Platform, BackHandler } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const CONTENT_SCRIPT = `
 (function() {
@@ -293,6 +293,18 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (RNStatusBar.currentHeight
 export default function App() {
   const webViewRef = useRef(null);
   const [isDark, setIsDark] = useState(false);
+  const canGoBackRef = useRef(false);
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (canGoBackRef.current && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, []);
 
   return (
     <View style={{ flex: 1, paddingTop: STATUS_BAR_HEIGHT, backgroundColor: isDark ? 'rgb(12,16,20)' : '#fff' }}>
@@ -318,6 +330,7 @@ export default function App() {
           } catch (_) {}
         }}
         onNavigationStateChange={(navState) => {
+          canGoBackRef.current = navState.canGoBack;
           if (webViewRef.current) {
             webViewRef.current.injectJavaScript(CONTENT_SCRIPT);
           }

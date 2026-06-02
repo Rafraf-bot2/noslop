@@ -16,8 +16,7 @@
       "package": "com.noreel.insta"
     },
     "plugins": [
-      "expo-font",
-      "expo-localization"
+      "expo-font"
     ]
   }
 }

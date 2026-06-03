@@ -6,8 +6,8 @@
 <p align="center"><em>Instagram without the parts designed to waste your time.</em></p>
 
 <p align="center">
-  <a href="https://github.com/Rafraf-bot2/GramZero/actions/workflows/eas-build.yml"><img alt="Build" src="https://github.com/Rafraf-bot2/GramZero/actions/workflows/eas-build.yml/badge.svg"></a>
-  <a href="https://github.com/Rafraf-bot2/GramZero/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Rafraf-bot2/GramZero?include_prereleases&sort=semver"></a>
+  <a href="https://github.com/Rafraf-bot2/noslop/actions/workflows/eas-build.yml"><img alt="Build" src="https://github.com/Rafraf-bot2/noslop/actions/workflows/eas-build.yml/badge.svg"></a>
+  <a href="https://github.com/Rafraf-bot2/noslop/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Rafraf-bot2/noslop?include_prereleases&sort=semver"></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Android-green.svg">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 </p>
@@ -71,8 +71,8 @@ Done. Log in with your Instagram account inside the app.
 ### Run in dev mode
 
 ```bash
-git clone https://github.com/Rafraf-bot2/GramZero.git
-cd GramZero
+git clone https://github.com/Rafraf-bot2/noslop.git
+cd noslop
 npm install
 npx expo start
 ```

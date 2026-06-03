@@ -21,10 +21,22 @@ No Play Store. No account. No server. Just Instagram, minus the slop.
 >
 > **Use at your own risk.** Automated DOM manipulation may conflict with Instagram's Terms of Service. Only use this with your own account.
 
+## Why this is safe to install
+
+Skepticism about an Instagram wrapper APK is fair. Here's exactly what it does and doesn't do:
+
+- **No accessibility service.** It never reads other apps or your screen content.
+- **No screen overlay.** It doesn't draw over other apps.
+- **No background process.** Nothing runs when the app is closed.
+- **One network destination.** The app makes no requests other than to `instagram.com` — same traffic as opening it in Chrome.
+- **JS injection = browser extension model.** The content script runs inside the WebView page context only, the same way a browser extension would. It can't reach outside that sandbox.
+- **Full source available.** Everything is in `App.js` and `LandingScreen.js` — no obfuscation, no native modules beyond what Expo ships.
+
 ---
 
 ## Table of contents
 
+- [Why this is safe to install](#why-this-is-safe-to-install)
 - [What it blocks](#what-it-blocks)
 - [Download](#download-android)
 - [Build it yourself](#build-it-yourself)
@@ -180,6 +192,7 @@ Instagram is a React SPA that ships frequent updates. The content script targets
 - [x] Block reel swiping from DM links
 - [x] Dark/light mode sync with system status bar
 - [x] Onboarding screen
+- [ ] Time window for Stories (e.g. allow after 8pm only)
 - [ ] iOS support (WebView JS injection restrictions make this harder)
 - [ ] Notification badge on the app icon
 
